@@ -7,6 +7,7 @@ import {
   Text,
   Image,
   StyleSheet,
+  AppState
 } from 'react-native';
 
 const styles = StyleSheet.create({
@@ -21,7 +22,7 @@ const styles = StyleSheet.create({
         flex: 1
     }
 });
-
+  
 export default class Pulse extends Component {
     static propTypes = {
         color: PropTypes.string,
@@ -70,12 +71,12 @@ export default class Pulse extends Component {
         };
     }
 
-    mounted = true;
+    componentWillMount() {
+        AppState.addEventListener('change', this.handleAppStateChange);
+    }
 
     componentDidMount(){
-        const {numPulses, duration, speed} = this.state;
-
-        this.setState({started: true});
+        const {numPulses, duration} = this.state;
 
         let a = 0;
         while(a < numPulses){
@@ -86,18 +87,40 @@ export default class Pulse extends Component {
             a++;
         }
 
-        this.timer = setInterval(() => {
-            this.updatePulse();
-        }, speed);
+        this.mounted = true;
+        this.startPulse();
     }
 
     componentWillUnmount(){
         this.mounted = false;
         clearTimeout(this.createPulseTimer);
         clearInterval(this.timer);
+        AppState.removeEventListener('change', this.handleAppStateChange);
     }
 
-    createPulse = (pKey) => {
+    handleAppStateChange = nextAppState => {
+        if (nextAppState === 'active') {
+            this.startPulse();
+        } else {
+            this.setState({started: false});
+            clearTimeout(this.createPulseTimer);
+            clearInterval(this.timer);
+        }
+    };
+
+    startPulse = () => {
+        if (this.mounted) {
+            this.setState({started: true});
+
+            const {speed} = this.state;
+
+            this.timer = setInterval(() => {
+                this.updatePulse();
+            }, speed);
+        }
+    }
+
+    createPulse = () => {
         if (this.mounted) {
             let pulses = this.state.pulses;
 
@@ -176,3 +199,4 @@ export default class Pulse extends Component {
         )
     }
 }
+  
